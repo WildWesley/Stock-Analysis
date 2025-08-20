@@ -10,7 +10,6 @@ from bs4 import BeautifulSoup
 import sqlite3
 from datetime import datetime
 import pandas as pd
-import matplotlib.pyplot as plt
 import time
 import logging
 import re
@@ -33,145 +32,186 @@ def setup_driver():
     options.add_argument("--disable-blink-features=AutomationControlled")
     options.add_argument("--disable-logging")
     options.add_argument("--log-level=3")
+    options.add_argument("--enable-unsafe-swiftshader")
+    options.add_argument("--disable-web-security")
+    options.add_argument("--disable-features=VizDisplayCompositor")
     options.add_experimental_option("excludeSwitches", ["enable-logging"])
     options.add_experimental_option('useAutomationExtension', False)
     options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
     
+    options.add_argument("--page-load-strategy=eager")
+    
     try:
         driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
         driver.execute_script("Object.defineProperty(navigator, 'webdriver', {get: () => undefined})")
+        
+        driver.set_page_load_timeout(60)
+        driver.implicitly_wait(10)
+        
         return driver
     except Exception as e:
         logger.error(f"Failed to setup driver: {e}")
         return None
 
-def scrape_stockinvest_page(driver, url):
-    """Scrape stock data from StockInvest.us"""
-    try:
-        logger.info(f"Loading {url}")
-        driver.get(url)
-        time.sleep(3)
-        
-        soup = BeautifulSoup(driver.page_source, "html.parser")
-        logger.info("Page loaded successfully")
-        
-        # Try to find stock container
-        stock_container = soup.select_one("body > div:nth-of-type(7) > div > div:nth-of-type(2) > div > div:nth-of-type(1)")
-        
-        if stock_container:
-            return parse_stock_data(stock_container)
-        else:
-            logger.warning("Stock container not found")
-            return []
+def scrape_stockinvest_page(driver, url, max_retries=3):
+    """Scrape stock data from StockInvest.us targeting the panel structure"""
+    for attempt in range(max_retries):
+        try:
+            logger.info(f"Attempt {attempt + 1}: Loading {url}")
             
-    except Exception as e:
-        logger.error(f"Error scraping page: {e}")
-        return []
+            driver.get(url)
+            
+            # Wait for panels to load
+            try:
+                WebDriverWait(driver, 30).until(
+                    EC.presence_of_element_located((By.CSS_SELECTOR, ".panel.panel-compact"))
+                )
+                logger.info("Page loaded - found panel elements")
+            except TimeoutException:
+                logger.warning("Timeout waiting for panel elements, proceeding anyway")
+            
+            # Additional wait for dynamic content
+            time.sleep(3)
+            
+            soup = BeautifulSoup(driver.page_source, "html.parser")
+            
+            # Find all panels with class "panel panel-compact"
+            panels = soup.find_all("div", class_="panel panel-compact")
+            logger.info(f"Found {len(panels)} panel elements")
+            
+            if panels:
+                stocks = parse_panel_data(panels)
+                if stocks:
+                    return stocks
+                else:
+                    logger.warning(f"Found panels but no stock data on attempt {attempt + 1}")
+            else:
+                logger.warning(f"No panels found on attempt {attempt + 1}")
+                
+        except Exception as e:
+            logger.error(f"Error on attempt {attempt + 1}: {e}")
+            
+        # Wait before retry
+        if attempt < max_retries - 1:
+            logger.info("Waiting 5 seconds before retry...")
+            time.sleep(5)
+    
+    logger.error("All attempts failed")
+    return []
 
-def parse_stock_data(container):
-    """Parse stock data from the container"""
+def parse_panel_data(panels):
+    """Parse stock data from panel elements"""
     stocks = []
     
-    # Try multiple approaches to find all stock items
-    stock_items = []
-    
-    # Approach 1: Direct children divs (original method)
-    direct_children = container.find_all("div", recursive=False)
-    if len(direct_children) > 5:
-        stock_items = direct_children[5:]  # Skip first 5
-        logger.info(f"Approach 1: Found {len(stock_items)} stock items using direct children")
-    
-    # If we don't have many items, try other approaches
-    if len(stock_items) < 10:
-        # Approach 2: Look for all divs that contain ticker-score spans
-        ticker_score_divs = container.find_all("div", class_=lambda x: x is None)
-        ticker_items = []
-        for div in ticker_score_divs:
-            if div.find("span", class_="ticker-score"):
-                ticker_items.append(div)
-        
-        if len(ticker_items) > len(stock_items):
-            stock_items = ticker_items
-            logger.info(f"Approach 2: Found {len(stock_items)} stock items by ticker-score spans")
-    
-    # If still not many, try finding by ticker pattern
-    if len(stock_items) < 10:
-        # Approach 3: Find divs containing stock ticker patterns
-        all_divs = container.find_all("div")
-        pattern_items = []
-        for div in all_divs:
-            div_text = div.get_text(strip=True)
-            if re.search(r'\b[A-Z]{2,5}\b', div_text) and len(div_text) > 10:  # Has ticker and substantial content
-                pattern_items.append(div)
-        
-        # Remove duplicates and nested items
-        unique_items = []
-        for item in pattern_items:
-            is_parent = False
-            for other in pattern_items:
-                if item != other and item in other.find_all("div"):
-                    is_parent = True
-                    break
-            if not is_parent:
-                unique_items.append(item)
-        
-        if len(unique_items) > len(stock_items):
-            stock_items = unique_items[:30]  # Limit to reasonable number
-            logger.info(f"Approach 3: Found {len(stock_items)} stock items by ticker pattern")
-    
-    logger.info(f"Processing {len(stock_items)} stock items")
-    
-    for i, item in enumerate(stock_items):
+    for i, panel in enumerate(panels):
         try:
-            stock_data = extract_stock_info(item)
-            if stock_data and stock_data.get('ticker'):
-                stocks.append(stock_data)
-                logger.info(f"Extracted: {stock_data}")
+            # Look for panel-body with specific class and style
+            panel_body = panel.find("div", class_="panel-body pt-10 pb-10")
+            
+            if panel_body:
+                # Check if this is a premium/locked stock (skip if so)
+                if is_premium_stock(panel_body):
+                    logger.info(f"Skipping premium stock in panel {i}")
+                    continue
+                    
+                stock_data = extract_stock_from_panel(panel_body)
+                if stock_data and stock_data.get('ticker'):
+                    stocks.append(stock_data)
+                    logger.info(f"Panel {i} - Extracted: {stock_data}")
+                else:
+                    logger.warning(f"Panel {i} - No valid stock data found")
+            else:
+                logger.warning(f"Panel {i} - No panel-body found")
+                
         except Exception as e:
-            logger.error(f"Error parsing stock item {i}: {e}")
+            logger.error(f"Error parsing panel {i}: {e}")
     
     return stocks
 
-def extract_stock_info(item):
-    """Extract stock information from a stock item element"""
+def is_premium_stock(panel_body):
+    """Check if this stock requires premium subscription"""
+    
+    # Check for blur-content class (main indicator)
+    if panel_body.find(class_="blur-content not-active ticker-list-require-subscription"):
+        return True
+    
+    # Check for UNLOCK button
+    if panel_body.find("a", class_=lambda x: x and "btn-get-candidates" in x):
+        return True
+    
+    # Check for #### ticker placeholder
+    if "####" in panel_body.get_text():
+        return True
+    
+    # Check for "Click To Unlock" text
+    if "Click To Unlock" in panel_body.get_text():
+        return True
+        
+    return False
+
+def extract_stock_from_panel(panel_body):
+    """Extract stock information from a panel body element"""
     stock_data = {
         'ticker': '',
-        'recommendation': 'Buy',  # Default
+        'recommendation': 'Buy',  # Default since this is from a "buy" list
         'sector': '',
-        'score': None
+        'score': None,
+        'industry': '',
+        'exchange': '',
+        'price': '',
+        'change_percent': ''
     }
     
-    # Extract ticker using the specific path structure you provided
-    # /html/body/div[7]/div/div[2]/div/div[1]/div[11]/div/div/div[3]/div[2]/div/a/div[1]/text()
-    # This translates to: div[3]/div[2]/div/a/div[1] within each stock item
+    # Extract ticker from the specific div class
+    ticker_div = panel_body.find("div", class_="font-weight-500 font-size-16")
+    if ticker_div:
+        ticker_text = ticker_div.get_text(strip=True)
+        # Clean ticker - should be just letters and numbers
+        ticker_clean = re.sub(r'[^A-Z0-9]', '', ticker_text.upper())
+        if ticker_clean and len(ticker_clean) <= 5:
+            stock_data['ticker'] = ticker_clean
     
-    ticker_elem = item.select_one("div:nth-of-type(3) > div:nth-of-type(2) > div > a > div:nth-of-type(1)")
-    if ticker_elem:
-        ticker_text = ticker_elem.get_text(strip=True)
-        # Clean the ticker text - should be 2-5 uppercase letters only
-        ticker_match = re.search(r'\b([A-Z]{2,5})\b', ticker_text)
-        if ticker_match:
-            stock_data['ticker'] = ticker_match.group(1)
-            logger.info(f"Found ticker via specific path: {stock_data['ticker']}")
+    # Extract score from ticker-score span
+    score_span = panel_body.find("span", class_="ticker-score")
+    if score_span:
+        score_text = score_span.get_text(strip=True)
+        try:
+            score_value = float(score_text)
+            if 0 <= score_value <= 10:
+                stock_data['score'] = score_value
+        except ValueError:
+            pass
     
-    # Fallback: if specific path doesn't work, try other methods
-    if not stock_data['ticker']:
-        # Try the font-weight-500 font-size-16 class from original script
-        ticker_elem = item.select_one("div.font-weight-500.font-size-16")
-        if ticker_elem:
-            ticker_text = ticker_elem.get_text(strip=True)
-            ticker_match = re.search(r'\b([A-Z]{2,5})\b', ticker_text)
-            if ticker_match:
-                stock_data['ticker'] = ticker_match.group(1)
-                logger.info(f"Found ticker via font class: {stock_data['ticker']}")
+    # Extract sector, industry, and exchange from the structured links
+    panel_text = panel_body.get_text()
     
-    # Last fallback: look for ticker in anchor tags
-    if not stock_data['ticker']:
-        ticker_links = item.find_all("a")
-        for link in ticker_links:
-            link_text = link.get_text(strip=True)
-            # Look for patterns like stock tickers
-            ticker_match = re.search(r'^([A-Z]{2,5}')
+    # Look for "Sector:" followed by the sector name
+    sector_match = re.search(r'Sector:\s*([^<\n]+?)(?:\s+Industry:|$)', panel_text)
+    if sector_match:
+        stock_data['sector'] = sector_match.group(1).strip()
+    
+    # Look for "Industry:" followed by the industry name
+    industry_match = re.search(r'Industry:\s*([^<\n]+?)(?:\s+Exchange:|$)', panel_text)
+    if industry_match:
+        stock_data['industry'] = industry_match.group(1).strip()
+    
+    # Look for "Exchange:" followed by the exchange name
+    exchange_match = re.search(r'Exchange:\s*([^<\n]+?)(?:\s+Instrument:|$)', panel_text)
+    if exchange_match:
+        stock_data['exchange'] = exchange_match.group(1).strip()
+    
+    # Extract price and change percentage
+    # Look for price pattern like $7.10
+    price_match = re.search(r'\$(\d+\.?\d*)', panel_text)
+    if price_match:
+        stock_data['price'] = f"${price_match.group(1)}"
+    
+    # Look for percentage change like 1.00%
+    change_match = re.search(r'(\d+\.?\d*)%', panel_text)
+    if change_match:
+        stock_data['change_percent'] = f"{change_match.group(1)}%"
+    
+    return stock_data if stock_data['ticker'] else None
 
 def save_to_database(stocks):
     """Save stock data to SQLite database"""
@@ -182,13 +222,17 @@ def save_to_database(stocks):
     conn = sqlite3.connect("stocks.db")
     cursor = conn.cursor()
     
-    # Create table with your specified structure
+    # Create table with additional fields
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS recommendations (
             ticker TEXT, 
             recommendation TEXT, 
             sector TEXT, 
             score REAL,
+            industry TEXT,
+            exchange TEXT,
+            price TEXT,
+            change_percent TEXT,
             date TEXT, 
             UNIQUE(ticker, date)
         )
@@ -201,10 +245,11 @@ def save_to_database(stocks):
         try:
             cursor.execute(
                 """INSERT OR IGNORE INTO recommendations 
-                   (ticker, recommendation, sector, score, date) 
-                   VALUES (?, ?, ?, ?, ?)""",
+                   (ticker, recommendation, sector, score, industry, exchange, price, change_percent, date) 
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
                 (stock['ticker'], stock['recommendation'], stock['sector'], 
-                 stock.get('score'), date)
+                 stock.get('score'), stock.get('industry'), stock.get('exchange'),
+                 stock.get('price'), stock.get('change_percent'), date)
             )
             if cursor.rowcount > 0:
                 inserted_count += 1
@@ -216,7 +261,7 @@ def save_to_database(stocks):
     
     # Display results
     df = pd.read_sql_query(
-        "SELECT ticker, score, recommendation, sector FROM recommendations WHERE date = ? ORDER BY score DESC", 
+        "SELECT ticker, score, recommendation, sector, price, change_percent FROM recommendations WHERE date = ? ORDER BY score DESC", 
         conn, params=(date,)
     )
     
@@ -231,6 +276,47 @@ def save_to_database(stocks):
         logger.warning("No data found for today")
     
     conn.close()
+
+def save_debug_info(driver, stocks_found):
+    """Save debug information for troubleshooting"""
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    
+    # Save page source
+    try:
+        with open(f"debug_page_source_{timestamp}.html", "w", encoding="utf-8") as f:
+            f.write(driver.page_source)
+        logger.info("Debug page source saved")
+    except Exception as e:
+        logger.error(f"Error saving page source: {e}")
+    
+    # Save panel structure info
+    try:
+        soup = BeautifulSoup(driver.page_source, "html.parser")
+        panels = soup.find_all("div", class_="panel panel-compact")
+        
+        with open(f"debug_panels_{timestamp}.txt", "w", encoding="utf-8") as f:
+            f.write(f"Found {len(panels)} panels\n")
+            f.write(f"Successfully parsed {len(stocks_found)} stocks\n\n")
+            
+            for i, panel in enumerate(panels[:10]):  # First 10 panels
+                panel_body = panel.find("div", class_="panel-body pt-10 pb-10")
+                if panel_body:
+                    f.write(f"PANEL {i} (Premium: {is_premium_stock(panel_body)}):\n")
+                    f.write("="*50 + "\n")
+                    
+                    # Extract key elements for debugging
+                    ticker_div = panel_body.find("div", class_="font-weight-500 font-size-16")
+                    score_span = panel_body.find("span", class_="ticker-score")
+                    
+                    f.write(f"Ticker div: {ticker_div.get_text(strip=True) if ticker_div else 'Not found'}\n")
+                    f.write(f"Score span: {score_span.get_text(strip=True) if score_span else 'Not found'}\n")
+                    f.write(f"Has blur-content: {bool(panel_body.find(class_='blur-content'))}\n")
+                    f.write("Panel text preview:\n")
+                    f.write(panel_body.get_text()[:500] + "...\n\n")
+                
+        logger.info("Debug panel info saved")
+    except Exception as e:
+        logger.error(f"Error saving debug info: {e}")
 
 def main():
     """Main execution function"""
@@ -250,13 +336,19 @@ def main():
         if stocks:
             save_to_database(stocks)
         else:
-            logger.warning("No stocks were scraped.")
+            logger.warning("No stocks were scraped. Saving debug info...")
+            save_debug_info(driver, stocks)
             
     except Exception as e:
         logger.error(f"Main execution error: {e}")
+        import traceback
+        logger.error(traceback.format_exc())
     finally:
-        driver.quit()
-        logger.info("Driver closed.")
+        try:
+            driver.quit()
+            logger.info("Driver closed.")
+        except:
+            pass
 
 if __name__ == "__main__":
     main()
