@@ -1,0 +1,26 @@
+// Allows for website backend to be made in Python
+flask
+
+// Allows for database values to be written in the form of Python objects
+flask_sqlalchemy
+
+// 
+flask_migrate
+
+// Framework for flask authentication system
+flask_login
+
+// Helps prevent CSRF attacks (unauthorized requests from other websites in a user browser)
+flask_wtf
+
+// Limits user requests per minute
+flask_limiter
+
+// Encrypts data and sets timer on authentication key
+itsdangerous
+
+//
+python-dotenv
+
+//
+gunicorn
