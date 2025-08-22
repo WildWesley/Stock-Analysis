@@ -40,7 +40,7 @@ def create_app():
     # Home page
     @app.route("/")
     def home():
-        return render_template("home.html")
+        return render_template("main/home.html")
 
     # Register page
     @app.route("/register", methods=["GET", "POST"])
@@ -70,7 +70,7 @@ def create_app():
             flash("Account created. Please log in.", "success")
             return redirect(url_for("login"))
 
-        return render_template("register.html")
+        return render_template("auth/register.html")
 
     @app.route("/login", methods=["GET", "POST"])
     def login():
@@ -79,9 +79,29 @@ def create_app():
             password = request.form.get("password", "")
             remember = request.form.get("remember") == "on"
 
-        if not username or not password:
-            pass
-            # NOTE: STOPPED HERE!
+            user = User.uery.filter_by(username=username).first()
+            if not user or not user.check_password(password):
+                flash("Invalid username or password.", "error")
+                return redirect(url_for("login"))
+            
+            login_user(user, remember=remember)
+            flash("Logged in.", "success")
+            return redirect(url_for("dashboard"))
+        
+        return render_template("auth/login.html")
+
+    @app.route("/logout")
+    @login_required
+    def logout():
+        logout_user() # Imported function that logs user out
+        flash("Logged out.", "success")
+        return redirect(url_for("home"))
+    
+    @app.route("/dashboard")
+    @login_required
+    def dashboard():
+        # Sample dashboard template that injects current user info to customize
+        return render_template("main/dashboard.html", user=current_user)
     
     return app
 

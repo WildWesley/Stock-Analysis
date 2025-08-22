@@ -1,0 +1,7 @@
+{% extends "base.html" %}
+{% block title %}Dashboard · StockSite{% endblock %}
+{% block content %}
+  <h1>Dashboard</h1>
+  <p>Hello, <strong>{{ user.username }}</strong> — you’re logged in.</p>
+  <p>This page is protected with <code>@login_required</code>.</p>
+{% endblock %}
