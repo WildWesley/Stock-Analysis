@@ -118,8 +118,8 @@ def create_app():
     @login_required
     def see_predictions():
         # Query the stock data needed from the database, take the user to a predictions page showing predictions and graphs (eventually)
-        current_predictions = Prediction.query.order_by(Prediction.symbol()).all()
-        return render_template("main/predictions.html", items=current_predictions)
+        current_predictions = Prediction.query.order_by(Prediction.ticker).all()
+        return render_template("main/predictions.html", results=current_predictions)
 
     return app
 

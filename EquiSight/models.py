@@ -27,7 +27,10 @@ class User(UserMixin, db.Model):
 # Stock predictions table (Note the required syntax to set these attributes to the table)
 class Prediction(db.Model):
     id = db.Column(db.Integer, primary_key=True)
-    symbol = db.Column(db.String(10), nullable=False)
+    ticker = db.Column(db.String(10), nullable=False)
+    score = db.Column(db.Float, nullable=True)
+    recommendation = db.Column(db.String(10), nullable=True)
+    sector = db.Column(db.String(30), nullable=True)
     price = db.Column(db.Float, nullable=True)
-    confidence = db.Column(db.Float, nullable=True)
+    change_percent = db.Column(db.Float, nullable=True)
     scraped_at = db.Column(db.DateTime, default=datetime.now(timezone.utc))

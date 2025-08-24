@@ -8,12 +8,27 @@
     <table>
         <thead>
             <tr>
-                <th>ID</th>
-                <th>Symbol</th>
+                <th>Ticker</th>
+                <th>Score</th>
+                <th>Recommendation</th>
+                <th>Sector</th>
                 <th>Price</th>
-                <th>Confidence</th>
-                <th>Time Received</th>
+                <th>Change Percent</th>
+                <th>Scrape Time</th>
             </tr>
         </thead>
+        <tbody>
+            {% for row in results %}
+            <tr>
+                <td>{{ row.ticker }}</td>
+                <td>{{ row.score }}</td>
+                <td>{{ row.recommendation }}</td>
+                <td>{{ row.sector }}</td>
+                <td>{{ row.price }}</td>
+                <td>{{ row.change_percent }}</td>
+                <td>{{ row.scraped_at.strftime("%Y-%m-%d %H:%M") }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
     </table>
 {% endblock %}
