@@ -4,8 +4,12 @@ from dotenv import load_dotenv
 from flask_sqlalchemy import SQLAlchemy
 import os
 # We import our model here so that we can save information to the database of that form
-from models import db, User, Prediction
-import models
+from EquiSight.models import db, User, Prediction
+import EquiSight.models
+# We import our scraping script to run in the background with multithreading
+from EquiSight.scraping_scripts.stock_invest_selenium import run_script
+from threading import Thread
+
 
 # NOTE: app.py is meant to configure Flask, initialize 
 # the database, and create the tables
@@ -14,7 +18,6 @@ import models
 load_dotenv()
 
 # This gives us access to the login extension
-db = SQLAlchemy()
 login_manager = LoginManager()
 
 def create_app():
@@ -42,6 +45,14 @@ def create_app():
     # Create database
     with app.app_context():
         db.create_all()
+
+    # Define background scraper function
+    def start_scraper():
+        with app.app_context():
+            run_script()
+
+    # daemon=True will set the thread to end when flask is closed
+    Thread(target=start_scraper, daemon=True).start()
 
     # Page routes
     # Home page
@@ -116,13 +127,9 @@ def create_app():
 
     @app.route("/predictions")
     @login_required
-    def see_predictions():
+    def predictions():
         # Query the stock data needed from the database, take the user to a predictions page showing predictions and graphs (eventually)
         current_predictions = Prediction.query.order_by(Prediction.ticker).all()
         return render_template("main/predictions.html", results=current_predictions)
 
     return app
-
-if __name__ == "__main__":
-    app = create_app()
-    app.run(debug=True)

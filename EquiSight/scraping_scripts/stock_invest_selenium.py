@@ -13,6 +13,8 @@ import pandas as pd
 import time
 import logging
 import re
+from EquiSight import db
+from EquiSight.models import Prediction
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -219,63 +221,28 @@ def save_to_database(stocks):
         logger.warning("No stocks to save to database")
         return
     
-    conn = sqlite3.connect("stocks.db")
-    cursor = conn.cursor()
-    
-    # Create table with additional fields
-    cursor.execute("""
-        CREATE TABLE IF NOT EXISTS recommendations (
-            ticker TEXT, 
-            recommendation TEXT, 
-            sector TEXT, 
-            score REAL,
-            industry TEXT,
-            exchange TEXT,
-            price TEXT,
-            change_percent TEXT,
-            date TEXT, 
-            UNIQUE(ticker, date)
-        )
-    """)
-    
-    date = datetime.now().strftime("%Y-%m-%d")
     inserted_count = 0
+    today = datetime.now().date()
     
     for stock in stocks:
-        try:
-            cursor.execute(
-                """INSERT OR IGNORE INTO recommendations 
-                   (ticker, recommendation, sector, score, industry, exchange, price, change_percent, date) 
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)""",
-                (stock['ticker'], stock['recommendation'], stock['sector'], 
-                 stock.get('score'), stock.get('industry'), stock.get('exchange'),
-                 stock.get('price'), stock.get('change_percent'), date)
-            )
-            if cursor.rowcount > 0:
-                inserted_count += 1
-        except Exception as e:
-            logger.error(f"Error inserting {stock}: {e}")
+        exists = Prediction.query.filter_by(ticker=stock['ticker'], date=today).first()
+        if exists:
+            continue
     
-    conn.commit()
-    logger.info(f"Inserted {inserted_count} new records into database")
+        prediction = Prediction(
+            ticker=stock['ticker'],
+            score=stock['score'],
+            recommendation=stock['recommendation'],
+            sector=stock['sector'],
+            price=stock['price'],
+            change_percent=stock['change_percent'],
+            date=stock['date']
+        )
+        db.session.add(prediction)
+        inserted_count += 1
     
-    # Display results
-    df = pd.read_sql_query(
-        "SELECT ticker, score, recommendation, sector, price, change_percent FROM recommendations WHERE date = ? ORDER BY score DESC", 
-        conn, params=(date,)
-    )
-    
-    if not df.empty:
-        logger.info(f"\nToday's recommendations ({len(df)} total), sorted by score:")
-        print(df.to_string(index=False))
-        
-        if len(df) > 10:
-            print(f"\n--- TOP 10 BY SCORE ---")
-            print(df.head(10).to_string(index=False))
-    else:
-        logger.warning("No data found for today")
-    
-    conn.close()
+    db.session.commit()
+    logger.info(f"Inserted {inserted_count} new predictions!")
 
 def save_debug_info(driver, stocks_found):
     """Save debug information for troubleshooting"""
@@ -318,7 +285,7 @@ def save_debug_info(driver, stocks_found):
     except Exception as e:
         logger.error(f"Error saving debug info: {e}")
 
-def main():
+def scrape_stock_invest():
     """Main execution function"""
     url = "https://stockinvest.us/list/buy/top100?sref=top-buy-stocks-nav"
     
@@ -350,5 +317,7 @@ def main():
         except:
             pass
 
-if __name__ == "__main__":
-    main()
+def run_script():
+    while True:
+        scrape_stock_invest()
+        time.sleep(300)

@@ -33,4 +33,4 @@ class Prediction(db.Model):
     sector = db.Column(db.String(30), nullable=True)
     price = db.Column(db.Float, nullable=True)
     change_percent = db.Column(db.Float, nullable=True)
-    scraped_at = db.Column(db.DateTime, default=datetime.now(timezone.utc))
+    date = db.Column(db.DateTime, default=datetime.now(timezone.utc))

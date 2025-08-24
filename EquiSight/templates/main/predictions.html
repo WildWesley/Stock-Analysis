@@ -2,7 +2,7 @@
 {% block title %}Stock Predictions{% endblock %}
 {% block content %}
     <h1>Stock Predictions</h1>
-    <p><strong>{{ user.username }}</strong>, these are some of the public stock predictions that we've scraped from 
+    <p><strong>{{ current_user.username }}</strong>, these are some of the public stock predictions that we've scraped from 
     different public web sources. Drink responsibly.</p>
     <p>This page is protected with <code>@login_required</code>.</p>
     <table>
