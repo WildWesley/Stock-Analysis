@@ -1,9 +1,11 @@
 from flask import Flask, render_template, request, redirect, url_for, flash
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from dotenv import load_dotenv
+from flask_sqlalchemy import SQLAlchemy
 import os
 # We import our model here so that we can save information to the database of that form
-from models import db, User
+from models import db, User, Prediction
+import models
 
 # NOTE: app.py is meant to configure Flask, initialize 
 # the database, and create the tables
@@ -12,15 +14,20 @@ from models import db, User
 load_dotenv()
 
 # This gives us access to the login extension
+db = SQLAlchemy()
 login_manager = LoginManager()
 
 def create_app():
     # EquiSight is my cool app name
-    app = Flask("EquiSight")
+    app = Flask(
+    __name__,
+    template_folder=os.path.join(os.path.dirname(__file__), "templates"),
+    static_folder=os.path.join(os.path.dirname(__file__), "static")
+    )
 
     # Apply environment variables
     app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "dev")
-    app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL", "sqlite:///site.db")
+    app.config["SQLALCHEMY_DATABASE_URI"] = os.getenv("DATABASE_URL", "sqlite:///instance/site.db")
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
     # Initialize Flask extensions
@@ -41,6 +48,10 @@ def create_app():
     @app.route("/")
     def home():
         return render_template("main/home.html")
+
+    @login_manager.user_loader
+    def load_user(user_id):
+        return models.User.query.get(int(user_id))
 
     # Register page
     @app.route("/register", methods=["GET", "POST"])
@@ -79,7 +90,7 @@ def create_app():
             password = request.form.get("password", "")
             remember = request.form.get("remember") == "on"
 
-            user = User.uery.filter_by(username=username).first()
+            user = User.query.filter_by(username=username).first()
             if not user or not user.check_password(password):
                 flash("Invalid username or password.", "error")
                 return redirect(url_for("login"))
@@ -102,7 +113,14 @@ def create_app():
     def dashboard():
         # Sample dashboard template that injects current user info to customize
         return render_template("main/dashboard.html", user=current_user)
-    
+
+    @app.route("/predictions")
+    @login_required
+    def see_predictions():
+        # Query the stock data needed from the database, take the user to a predictions page showing predictions and graphs (eventually)
+        current_predictions = Prediction.query.order_by(Prediction.symbol()).all()
+        return render_template("main/predictions.html", items=current_predictions)
+
     return app
 
 if __name__ == "__main__":
