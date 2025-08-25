@@ -13,7 +13,7 @@ import time
 import logging
 import re
 from EquiSight import db
-from EquiSight.models import Prediction
+from EquiSight.models import Wall_Street_Prediction
 
 # Set up logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -224,11 +224,11 @@ def save_to_database(stocks):
     today = datetime.now().date()
     
     for stock in stocks:
-        exists = Prediction.query.filter_by(ticker=stock['ticker'], date=today).first()
+        exists = Wall_Street_Prediction.query.filter_by(ticker=stock['ticker'], date=today).first()
         if exists:
             continue
     
-        prediction = Prediction(
+        prediction = Wall_Street_Prediction(
             ticker=stock['ticker'],
             score=stock['score'],
             recommendation=stock['recommendation'],

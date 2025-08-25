@@ -25,12 +25,20 @@ class User(UserMixin, db.Model):
         return check_password_hash(self.password_hash, password)
 
 # Stock predictions table (Note the required syntax to set these attributes to the table)
-class Prediction(db.Model):
+class Wall_Street_Prediction(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     ticker = db.Column(db.String(10), nullable=False)
     score = db.Column(db.String(20), nullable=True)
     recommendation = db.Column(db.String(10), nullable=True)
-    sector = db.Column(db.String(30), nullable=True)
     price = db.Column(db.String(10), nullable=True)
     forecast_price = db.Column(db.String(10), nullable=True)
+    date = db.Column(db.DateTime, default=datetime.now(timezone.utc))
+
+# Zack Bulls and Bears
+class Zack_Bull_Bear(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    bull_ticker = db.Column(db.String(10), nullable=False)
+    bear_ticker = db.Column(db.String(10), nullable=False)
+    bull_link = db.Column(db.String(100), nullable=False)
+    bear_link = db.Column(db.String(100), nullable=False)
     date = db.Column(db.DateTime, default=datetime.now(timezone.utc))

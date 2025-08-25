@@ -22,7 +22,6 @@ cursor.execute("""
     CREATE TABLE IF NOT EXISTS recommendations (
         ticker TEXT,
         rating TEXT,
-        sector TEXT,
         signal TEXT,
         date TEXT,
         return_pct REAL,

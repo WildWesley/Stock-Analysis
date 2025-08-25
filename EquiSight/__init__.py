@@ -4,11 +4,12 @@ from dotenv import load_dotenv
 from flask_sqlalchemy import SQLAlchemy
 import os
 # We import our model here so that we can save information to the database of that form
-from EquiSight.models import db, User, Prediction
+from EquiSight.models import db, User, Wall_Street_Prediction
 import EquiSight.models as models
 # We import our scraping script to run in the background with multithreading
 # from EquiSight.scraping_scripts.stock_invest_selenium import run_script
-from EquiSight.scraping_scripts.wall_street_zen import run_script
+from EquiSight.scraping_scripts.wall_street_zen import run_wallstreet_script
+from EquiSight.scraping_scripts.zacks import EnhancedZacksScraper
 from threading import Thread
 
 
@@ -47,13 +48,22 @@ def create_app():
     with app.app_context():
         db.create_all()
 
-    # Define background scraper function
-    def start_scraper():
+    # Define background wall street scraper function
+    def start_wallstreet_scraper():
         with app.app_context():
-            run_script()
+            run_wallstreet_script()
+
+    # Define background zacks scraper function
+    def start_zack_scraper():
+        with app.app_context():
+            zack_scraper = EnhancedZacksScraper()
+            zack_scraper.run_zack_script()
+
 
     # daemon=True will set the thread to end when flask is closed
-    Thread(target=start_scraper, daemon=True).start()
+    Thread(target=start_wallstreet_scraper, daemon=True).start()
+    Thread(target=start_zack_scraper, daemon=True).start()
+
 
     # Page routes
     # Home page
@@ -130,7 +140,7 @@ def create_app():
     @login_required
     def predictions():
         # Query the stock data needed from the database, take the user to a predictions page showing predictions and graphs (eventually)
-        current_predictions = Prediction.query.order_by(Prediction.ticker).all()
+        current_predictions = Wall_Street_Prediction.query.order_by(Wall_Street_Prediction.ticker).all()
         return render_template("main/predictions.html", results=current_predictions)
 
     return app

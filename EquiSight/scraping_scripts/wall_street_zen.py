@@ -11,8 +11,8 @@ from datetime import datetime, timezone
 import pandas as pd
 import time
 import logging
-from sqlalchemy import func
-import re
+from EquiSight import db
+from EquiSight.models import Wall_Street_Prediction
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
@@ -145,7 +145,6 @@ def extract_stock_from_row(row):
         'ticker': '',
         'score': '',  # Will use upside_potential
         'recommendation': '',
-        'sector': 'N/A',  # Not available on this website
         'price': '',  # Current price
         'forecast_price': '',
         'date': datetime.now(timezone.utc).date()
@@ -228,31 +227,26 @@ def save_to_database(stocks):
         logger.warning("No stocks to save to database")
         return
     
-    # Import here to avoid circular imports
-    from EquiSight import db
-    from EquiSight.models import Prediction
-    
     inserted_count = 0
     today = datetime.now().date()
     
     for stock in stocks:
         # Check if prediction already exists for today
-        exists = Prediction.query.filter_by(ticker=stock['ticker'], date=today).first()
+        exists = Wall_Street_Prediction.query.filter_by(ticker=stock['ticker'], date=today).first()
         if exists:
-            logger.info(f"Prediction for {stock['ticker']} already exists for today, skipping")
+            logger.info(f"Wall_Street_Prediction for {stock['ticker']} already exists for today, skipping")
             continue
     
-        prediction = Prediction(
+        prediction = Wall_Street_Prediction(
             ticker=stock['ticker'],
             score=stock['score'],  # Upside potential percentage
             recommendation=stock['recommendation'],
-            sector=stock['sector'],  # Will be 'N/A' for WallStreetZen
             price=stock['price'],  # Current price
             forecast_price=stock['forecast_price'],
             date=stock['date']
         )
         
-        # Add forecast_price if your Prediction model supports it
+        # Add forecast_price if your Wall_Street_Prediction model supports it
         # Uncomment and modify if you add this field to your model:
         # prediction.forecast_price = stock['forecast_price']
         
@@ -264,6 +258,7 @@ def save_to_database(stocks):
         db.session.commit()
         logger.info(f"Successfully inserted {inserted_count} new predictions into database!")
     except Exception as e:
+        # Rollback cancels all uncommitted changes
         db.session.rollback()
         logger.error(f"Error saving to database: {e}")
         raise
@@ -280,7 +275,7 @@ def print_stocks_table(stocks):
     # Reorder columns to match database structure
     column_order = [
         'ticker', 'price', 'forecast_price', 'score', 
-        'recommendation', 'sector'
+        'recommendation'
     ]
     
     # Only include columns that exist in the dataframe
@@ -371,11 +366,11 @@ def scrape_wallstreetzen():
         except:
             pass
 
-def run_script():
+def run_wallstreet_script():
     """Run the scraper continuously"""
     while True:
         scrape_wallstreetzen()
-        time.sleep(300)  # Wait 5 minutes between runs
+        time.sleep(600)  # Wait 5 minutes between runs
 
 # if __name__ == "__main__":
 #     # For testing, just run once
