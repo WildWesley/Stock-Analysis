@@ -8,8 +8,8 @@ from EquiSight.models import db, User, Wall_Street_Prediction
 import EquiSight.models as models
 # We import our scraping script to run in the background with multithreading
 # from EquiSight.scraping_scripts.stock_invest_selenium import run_script
-from EquiSight.scraping_scripts.wall_street_zen import run_wallstreet_script
-from EquiSight.scraping_scripts.zacks import EnhancedZacksScraper
+from EquiSight.scraping_scripts.wall_street_zen import WallStreetScraper
+from EquiSight.scraping_scripts.zacks import ZacksScraper
 from threading import Thread
 
 
@@ -51,13 +51,14 @@ def create_app():
     # Define background wall street scraper function
     def start_wallstreet_scraper():
         with app.app_context():
-            run_wallstreet_script()
+            wallstreet_scraper = WallStreetScraper()
+            wallstreet_scraper.run_continuous()
 
     # Define background zacks scraper function
     def start_zack_scraper():
         with app.app_context():
-            zack_scraper = EnhancedZacksScraper()
-            zack_scraper.run_zack_script()
+            zack_scraper = ZacksScraper()
+            zack_scraper.run_continuous()
 
 
     # daemon=True will set the thread to end when flask is closed

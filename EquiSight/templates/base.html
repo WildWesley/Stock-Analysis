@@ -23,7 +23,7 @@
     {% if current_user.is_authenticated %}
       <a href="{{ url_for('dashboard') }}">Dashboard</a>
       <!-- The string in url_for() has to match the route function name exactly -->
-      <a href="{{ url_for('predictions') }}">Predictions</a>
+      <a href="{{ url_for('predictions') }}">Wall_Street_Predictions</a>
       <a href="{{ url_for('logout') }}">Logout</a>
     {% else %}
       <a href="{{ url_for('login') }}">Login</a>
