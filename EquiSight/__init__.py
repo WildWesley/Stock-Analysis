@@ -5,9 +5,10 @@ from flask_sqlalchemy import SQLAlchemy
 import os
 # We import our model here so that we can save information to the database of that form
 from EquiSight.models import db, User, Prediction
-import EquiSight.models
+import EquiSight.models as models
 # We import our scraping script to run in the background with multithreading
-from EquiSight.scraping_scripts.stock_invest_selenium import run_script
+# from EquiSight.scraping_scripts.stock_invest_selenium import run_script
+from EquiSight.scraping_scripts.wall_street_zen import run_script
 from threading import Thread
 
 

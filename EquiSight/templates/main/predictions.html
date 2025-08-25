@@ -14,7 +14,7 @@
                 <th>Sector</th>
                 <th>Price</th>
                 <th>Forecast Price</th>
-                <th>Scrape Time</th>
+                <th>Date</th>
             </tr>
         </thead>
         <tbody>
@@ -26,7 +26,7 @@
                 <td>{{ row.sector }}</td>
                 <td>{{ row.price }}</td>
                 <td>{{ row.forecast_price }}</td>
-                <td>{{ row.scraped_at.strftime("%Y-%m-%d %H:%M") }}</td>
+                <td>{{ row.date.strftime("%Y-%m-%d %H:%M") }}</td>
             </tr>
             {% endfor %}
         </tbody>

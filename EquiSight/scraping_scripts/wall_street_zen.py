@@ -142,17 +142,11 @@ def extract_stock_from_row(row):
     """Extract stock information from a Material-UI table row"""
     stock_data = {
         'ticker': '',
-        'company_name': '',
-        'market_cap': '',
-        'current_price': '',
+        'score': '',  # Will use upside_potential
+        'recommendation': '',
+        'sector': 'N/A',  # Not available on this website
+        'price': '',  # Current price
         'forecast_price': '',
-        'upside_potential': '',
-        'recommendation': 'Buy',  # Default assumption for this screener
-        'analysts_count': '',
-        'dividend_yield': '',
-        'earnings_yield': '',
-        'total_return_1y': '',
-        'annualized_return': '',
         'date': datetime.now().date()
     }
     
@@ -169,83 +163,30 @@ def extract_stock_from_row(row):
         if ticker_link:
             stock_data['ticker'] = ticker_link.get_text(strip=True)
         
-        # Column 1: Company Name
-        company_div = cells[1].find("div", class_=lambda x: x and "jss509" in x)
-        if company_div:
-            stock_data['company_name'] = company_div.get_text(strip=True)
+        # Column 3: Current Price -> maps to 'price'
+        current_price_text = cells[3].get_text(strip=True)
+        stock_data['price'] = current_price_text
         
-        # Column 2: Market Cap
-        stock_data['market_cap'] = cells[2].get_text(strip=True)
+        # Column 4: Forecast Price -> maps to 'forecast_price'
+        forecast_price_text = cells[4].get_text(strip=True)
+        stock_data['forecast_price'] = forecast_price_text
         
-        # Column 3: Current Price
-        stock_data['current_price'] = cells[3].get_text(strip=True)
-        
-        # Column 4: Forecast Price
-        stock_data['forecast_price'] = cells[4].get_text(strip=True)
-        
-        # Column 5: Upside Potential (percentage)
+        # Column 5: Upside Potential -> maps to 'score'
         upside_span = cells[5].find("span", class_="jss536")
         if upside_span:
-            stock_data['upside_potential'] = upside_span.get_text(strip=True)
+            upside_text = upside_span.get_text(strip=True)
         else:
-            stock_data['upside_potential'] = cells[5].get_text(strip=True)
+            upside_text = cells[5].get_text(strip=True)
         
-        # Column 6: Skip - this is likely the premium "top analysts" column
+        stock_data['score'] = upside_text
         
         # Column 7: Recommendation
         if len(cells) > 7:
-            stock_data['recommendation'] = cells[7].get_text(strip=True)
-        
-        # Column 8: Skip - likely another premium column
-        
-        # Column 9: Analysts Count
-        if len(cells) > 9:
-            analysts_text = cells[9].get_text(strip=True)
-            # Only use if it's not an unlock button
-            if "Unlock" not in analysts_text:
-                stock_data['analysts_count'] = analysts_text
-        
-        # Column 10: Skip - likely premium column
-        
-        # Column 11: Dividend Yield
-        if len(cells) > 11:
-            div_yield_text = cells[11].get_text(strip=True)
-            if "Unlock" not in div_yield_text:
-                div_yield_span = cells[11].find("span", class_="jss536")
-                if div_yield_span:
-                    stock_data['dividend_yield'] = div_yield_span.get_text(strip=True)
-                else:
-                    stock_data['dividend_yield'] = div_yield_text
-        
-        # Column 12: Earnings Yield
-        if len(cells) > 12:
-            earnings_text = cells[12].get_text(strip=True)
-            if "Unlock" not in earnings_text:
-                earnings_span = cells[12].find("span", class_="jss536")
-                if earnings_span:
-                    stock_data['earnings_yield'] = earnings_span.get_text(strip=True)
-                else:
-                    stock_data['earnings_yield'] = earnings_text
-        
-        # Column 13: Total Return 1Y
-        if len(cells) > 13:
-            return_text = cells[13].get_text(strip=True)
-            if "Unlock" not in return_text:
-                return_span = cells[13].find("span", class_="jss536")
-                if return_span:
-                    stock_data['total_return_1y'] = return_span.get_text(strip=True)
-                else:
-                    stock_data['total_return_1y'] = return_text
-        
-        # Column 14: Annualized Return
-        if len(cells) > 14:
-            annual_text = cells[14].get_text(strip=True)
-            if "Unlock" not in annual_text:
-                annual_span = cells[14].find("span", class_="jss536")
-                if annual_span:
-                    stock_data['annualized_return'] = annual_span.get_text(strip=True)
-                else:
-                    stock_data['annualized_return'] = annual_text
+            recommendation_text = cells[7].get_text(strip=True)
+            if "Unlock" not in recommendation_text:
+                stock_data['recommendation'] = recommendation_text
+            else:
+                stock_data['recommendation'] = 'Buy'  # Default for this screener
         
     except Exception as e:
         logger.error(f"Error extracting data from row: {e}")
@@ -254,49 +195,49 @@ def extract_stock_from_row(row):
     return stock_data if stock_data['ticker'] else None
 
 def save_to_database(stocks):
-    """Save stock data to database - placeholder for now"""
-    # This would integrate with your existing database structure
-    # You'll need to adapt this based on your Prediction model
-    
+    """Save stock data to SQLite database using Flask app structure"""
     if not stocks:
         logger.warning("No stocks to save to database")
         return
     
-    logger.info(f"Would save {len(stocks)} stocks to database")
-    # TODO: Implement database saving logic here
+    # Import here to avoid circular imports
+    from EquiSight import db
+    from EquiSight.models import Prediction
     
-    # Example of what the database integration might look like:
-    # from EquiSight import db
-    # from EquiSight.models import Prediction
-    # 
-    # inserted_count = 0
-    # today = datetime.now().date()
-    # 
-    # for stock in stocks:
-    #     exists = Prediction.query.filter_by(ticker=stock['ticker'], date=today).first()
-    #     if exists:
-    #         continue
-    # 
-    #     prediction = Prediction(
-    #         ticker=stock['ticker'],
-    #         company_name=stock['company_name'],
-    #         market_cap=stock['market_cap'],
-    #         current_price=stock['current_price'],
-    #         forecast_price=stock['forecast_price'],
-    #         upside_potential=stock['upside_potential'],
-    #         recommendation=stock['recommendation'],
-    #         analysts_count=stock['analysts_count'],
-    #         dividend_yield=stock['dividend_yield'],
-    #         earnings_yield=stock['earnings_yield'],
-    #         total_return_1y=stock['total_return_1y'],
-    #         annualized_return=stock['annualized_return'],
-    #         date=stock['date']
-    #     )
-    #     db.session.add(prediction)
-    #     inserted_count += 1
-    # 
-    # db.session.commit()
-    # logger.info(f"Inserted {inserted_count} new predictions!")
+    inserted_count = 0
+    today = datetime.now().date()
+    
+    for stock in stocks:
+        # Check if prediction already exists for today
+        exists = Prediction.query.filter_by(ticker=stock['ticker'], date=today).first()
+        if exists:
+            logger.info(f"Prediction for {stock['ticker']} already exists for today, skipping")
+            continue
+    
+        prediction = Prediction(
+            ticker=stock['ticker'],
+            score=stock['score'],  # Upside potential percentage
+            recommendation=stock['recommendation'],
+            sector=stock['sector'],  # Will be 'N/A' for WallStreetZen
+            price=stock['price'],  # Current price
+            date=stock['date']
+        )
+        
+        # Add forecast_price if your Prediction model supports it
+        # Uncomment and modify if you add this field to your model:
+        # prediction.forecast_price = stock['forecast_price']
+        
+        db.session.add(prediction)
+        inserted_count += 1
+        logger.info(f"Added {stock['ticker']} - Score: {stock['score']}, Recommendation: {stock['recommendation']}")
+    
+    try:
+        db.session.commit()
+        logger.info(f"Successfully inserted {inserted_count} new predictions into database!")
+    except Exception as e:
+        db.session.rollback()
+        logger.error(f"Error saving to database: {e}")
+        raise
 
 def print_stocks_table(stocks):
     """Print scraped stock data in a formatted table"""
@@ -307,30 +248,29 @@ def print_stocks_table(stocks):
     # Convert to pandas DataFrame for nice table display
     df = pd.DataFrame(stocks)
     
-    # Reorder columns for better display
+    # Reorder columns to match database structure
     column_order = [
-        'ticker', 'company_name', 'current_price', 'forecast_price', 
-        'upside_potential', 'recommendation', 'market_cap', 'analysts_count',
-        'dividend_yield', 'earnings_yield', 'total_return_1y', 'annualized_return'
+        'ticker', 'price', 'forecast_price', 'score', 
+        'recommendation', 'sector'
     ]
     
     # Only include columns that exist in the dataframe
     display_columns = [col for col in column_order if col in df.columns]
     df_display = df[display_columns]
     
-    print(f"\n{'='*120}")
+    print(f"\n{'='*100}")
     print(f"WALLSTREETZEN STOCK FORECAST DATA - {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}")
-    print(f"{'='*120}")
+    print(f"{'='*100}")
     print(f"Total stocks found: {len(stocks)}")
-    print(f"{'='*120}")
+    print(f"{'='*100}")
     
     # Print the table with pandas formatting
     pd.set_option('display.max_columns', None)
     pd.set_option('display.width', None)
-    pd.set_option('display.max_colwidth', 20)
+    pd.set_option('display.max_colwidth', 25)
     
     print(df_display.to_string(index=False))
-    print(f"{'='*120}\n")
+    print(f"{'='*100}\n")
 
 def save_debug_info(driver, stocks_found):
     """Save debug information for troubleshooting"""
@@ -386,7 +326,7 @@ def scrape_wallstreetzen():
         
         if stocks:
             print_stocks_table(stocks)
-            # save_to_database(stocks)  # Uncomment when database integration is ready
+            save_to_database(stocks)  # Now enabled with proper database integration
         else:
             logger.warning("No stocks were scraped. Saving debug info...")
             save_debug_info(driver, stocks)
