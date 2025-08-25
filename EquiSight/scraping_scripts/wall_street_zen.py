@@ -7,14 +7,15 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException, NoSuchElementException
 from bs4 import BeautifulSoup
-from datetime import datetime
+from datetime import datetime, timezone
 import pandas as pd
 import time
 import logging
+from sqlalchemy import func
 import re
 
 # Set up logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
 logger = logging.getLogger(__name__)
 
 def setup_driver():
@@ -147,7 +148,7 @@ def extract_stock_from_row(row):
         'sector': 'N/A',  # Not available on this website
         'price': '',  # Current price
         'forecast_price': '',
-        'date': datetime.now().date()
+        'date': datetime.now(timezone.utc).date()
     }
     
     # Get all table cells in the row
@@ -158,41 +159,68 @@ def extract_stock_from_row(row):
         return None
     
     try:
+        # Debug: Print all cell contents to see the structure
+        cell_contents = [cell.get_text(strip=True) for cell in cells]
+        logger.debug(f"Row cells: {cell_contents}")
+        
         # Column 0: Ticker (link)
         ticker_link = cells[0].find("a", class_=lambda x: x and "MuiLink-root-94" in x)
         if ticker_link:
             stock_data['ticker'] = ticker_link.get_text(strip=True)
         
-        # Column 3: Current Price -> maps to 'price'
-        current_price_text = cells[3].get_text(strip=True)
-        stock_data['price'] = current_price_text
+        # Find price columns by looking for $ symbols
+        price_columns = []
+        for i, cell in enumerate(cells):
+            cell_text = cell.get_text(strip=True)
+            if cell_text.startswith('$') and len(cell_text) > 1:
+                try:
+                    clean_price = cell_text[1:].replace(',', '')
+                    price_value = float(clean_price)
+                    price_columns.append((i, cell_text, price_value))
+                except ValueError:
+                    pass
+        logger.debug(f"Found price columns for {stock_data['ticker']}: {price_columns}")
         
-        # Column 4: Forecast Price -> maps to 'forecast_price'
-        forecast_price_text = cells[4].get_text(strip=True)
-        stock_data['forecast_price'] = forecast_price_text
+        # Typically the first price column is current price, second is forecast price
+        if len(price_columns) >= 1:
+            stock_data['price'] = price_columns[0][1]  # First price column
+            
+        if len(price_columns) >= 2:
+            stock_data['forecast_price'] = price_columns[1][1]  # Second price column
+        else:
+            # Fallback: try column 4 specifically
+            if len(cells) > 4:
+                forecast_text = cells[4].get_text(strip=True)
+                if forecast_text.startswith('$'):
+                    stock_data['forecast_price'] = forecast_text
         
         # Column 5: Upside Potential -> maps to 'score'
-        upside_span = cells[5].find("span", class_="jss536")
-        if upside_span:
-            upside_text = upside_span.get_text(strip=True)
-        else:
-            upside_text = cells[5].get_text(strip=True)
-        
-        stock_data['score'] = upside_text
+        if len(cells) > 5:
+            upside_span = cells[5].find("span", class_="jss536")
+            if upside_span:
+                upside_text = upside_span.get_text(strip=True)
+            else:
+                upside_text = cells[5].get_text(strip=True)
+            
+            if '%' in upside_text:  # Make sure it's a percentage
+                stock_data['score'] = upside_text
         
         # Column 7: Recommendation
         if len(cells) > 7:
             recommendation_text = cells[7].get_text(strip=True)
-            if "Unlock" not in recommendation_text:
+            if "Unlock" not in recommendation_text and recommendation_text:
                 stock_data['recommendation'] = recommendation_text
             else:
                 stock_data['recommendation'] = 'Buy'  # Default for this screener
         
+        logger.info(f"Extracted: {stock_data['ticker']} - Price: {stock_data['price']}, Forecast: {stock_data['forecast_price']}, Score: {stock_data['score']}")
+        
     except Exception as e:
         logger.error(f"Error extracting data from row: {e}")
         return None
-    
+        
     return stock_data if stock_data['ticker'] else None
+
 
 def save_to_database(stocks):
     """Save stock data to SQLite database using Flask app structure"""
@@ -220,6 +248,7 @@ def save_to_database(stocks):
             recommendation=stock['recommendation'],
             sector=stock['sector'],  # Will be 'N/A' for WallStreetZen
             price=stock['price'],  # Current price
+            forecast_price=stock['forecast_price'],
             date=stock['date']
         )
         
@@ -348,9 +377,9 @@ def run_script():
         scrape_wallstreetzen()
         time.sleep(300)  # Wait 5 minutes between runs
 
-if __name__ == "__main__":
-    # For testing, just run once
-    scrape_wallstreetzen()
+# if __name__ == "__main__":
+#     # For testing, just run once
+#     scrape_wallstreetzen()
     
-    # For continuous running, uncomment:
-    # run_script()
+#     # For continuous running, uncomment:
+#     # run_script()) and len(cell_text) > 1:

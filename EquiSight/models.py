@@ -32,5 +32,5 @@ class Prediction(db.Model):
     recommendation = db.Column(db.String(10), nullable=True)
     sector = db.Column(db.String(30), nullable=True)
     price = db.Column(db.String(10), nullable=True)
-    forecast_price = db.Column(db.Float, nullable=True)
+    forecast_price = db.Column(db.String(10), nullable=True)
     date = db.Column(db.DateTime, default=datetime.now(timezone.utc))
