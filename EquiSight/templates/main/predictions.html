@@ -13,7 +13,7 @@
                 <th>Recommendation</th>
                 <th>Sector</th>
                 <th>Price</th>
-                <th>Change Percent</th>
+                <th>Forecast Price</th>
                 <th>Scrape Time</th>
             </tr>
         </thead>
@@ -25,7 +25,7 @@
                 <td>{{ row.recommendation }}</td>
                 <td>{{ row.sector }}</td>
                 <td>{{ row.price }}</td>
-                <td>{{ row.change_percent }}</td>
+                <td>{{ row.forecast_price }}</td>
                 <td>{{ row.scraped_at.strftime("%Y-%m-%d %H:%M") }}</td>
             </tr>
             {% endfor %}

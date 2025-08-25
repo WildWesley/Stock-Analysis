@@ -28,9 +28,9 @@ class User(UserMixin, db.Model):
 class Prediction(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     ticker = db.Column(db.String(10), nullable=False)
-    score = db.Column(db.Float, nullable=True)
+    score = db.Column(db.String(20), nullable=True)
     recommendation = db.Column(db.String(10), nullable=True)
     sector = db.Column(db.String(30), nullable=True)
-    price = db.Column(db.Float, nullable=True)
-    change_percent = db.Column(db.Float, nullable=True)
+    price = db.Column(db.String(10), nullable=True)
+    forecast_price = db.Column(db.Float, nullable=True)
     date = db.Column(db.DateTime, default=datetime.now(timezone.utc))
