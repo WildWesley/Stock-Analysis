@@ -32,7 +32,7 @@ class Wall_Street_Prediction(db.Model):
     recommendation = db.Column(db.String(10), nullable=True)
     price = db.Column(db.String(10), nullable=True)
     forecast_price = db.Column(db.String(10), nullable=True)
-    date = db.Column(db.DateTime, default=date.today())
+    date = db.Column(db.Date, default=date.today())
 
 # Zack Bulls and Bears
 class Zack_Bull_Bear(db.Model):

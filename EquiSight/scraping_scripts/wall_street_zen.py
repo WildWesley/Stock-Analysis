@@ -217,7 +217,7 @@ class WallStreetScraper:
                 recommendation=stock['recommendation'],
                 price=stock['price'],
                 forecast_price=stock['forecast_price'],
-                date=stock['date']
+                date=today
             )
             
             db.session.add(prediction)
@@ -255,7 +255,7 @@ class WallStreetScraper:
             if self.driver:
                 self.driver.quit()
     
-    def run_continuous(self, interval_seconds=600):
+    def run_continuous(self, interval_seconds=3600):
         """Run scraper continuously"""
         while True:
             try:

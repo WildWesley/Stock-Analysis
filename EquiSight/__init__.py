@@ -65,8 +65,8 @@ def create_app():
 
 
     # daemon=True will set the thread to end when flask is closed
-    Thread(target=start_wallstreet_scraper, daemon=True).start()
     Thread(target=start_zack_scraper, daemon=True).start()
+    Thread(target=start_wallstreet_scraper, daemon=True).start()
 
 
     # Page routes

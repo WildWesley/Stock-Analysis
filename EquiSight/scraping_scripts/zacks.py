@@ -259,7 +259,7 @@ class ZacksScraper:
             if self.driver:
                 self.driver.quit()
     
-    def run_continuous(self, interval_seconds=600):
+    def run_continuous(self, interval_seconds=3600):
         """Run scraper continuously"""
         while True:
             try:
