@@ -4,13 +4,16 @@ from dotenv import load_dotenv
 from flask_sqlalchemy import SQLAlchemy
 import os
 # We import our model here so that we can save information to the database of that form
-from EquiSight.models import db, User, Wall_Street_Prediction
+from EquiSight.models import db, User, Wall_Street_Prediction, Zack_Bull_Bear
 import EquiSight.models as models
 # We import our scraping script to run in the background with multithreading
 # from EquiSight.scraping_scripts.stock_invest_selenium import run_script
 from EquiSight.scraping_scripts.wall_street_zen import WallStreetScraper
 from EquiSight.scraping_scripts.zacks import ZacksScraper
 from threading import Thread
+
+# Import datetime to get current rendering data
+from datetime import date, timezone
 
 
 # NOTE: app.py is meant to configure Flask, initialize 
@@ -135,7 +138,10 @@ def create_app():
     @login_required
     def dashboard():
         # Sample dashboard template that injects current user info to customize
-        return render_template("main/dashboard.html", user=current_user)
+        # Grab the Bull and Bear picks from zack for the dashboard
+        today = date.today()
+        bull_bear = Zack_Bull_Bear.query.filter_by(date=today).first()
+        return render_template("main/dashboard.html", user=current_user, bull_bear=bull_bear)
 
     @app.route("/predictions")
     @login_required

@@ -1,4 +1,5 @@
 # wallstreet_scraper.py
+# Scrapes wallstreetzen.com
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service
@@ -8,7 +9,7 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 from bs4 import BeautifulSoup
-from datetime import datetime, timezone
+from datetime import date, timezone
 import time
 from EquiSight import db
 from EquiSight.models import Wall_Street_Prediction
@@ -127,7 +128,7 @@ class WallStreetScraper:
             'recommendation': '',
             'price': '',
             'forecast_price': '',
-            'date': datetime.now(timezone.utc).date()
+            'date': date.today()
         }
         
         cells = row.find_all("td", class_=lambda x: x and "MuiTableCell-root-493" in x)
@@ -198,7 +199,7 @@ class WallStreetScraper:
             return
         
         inserted_count = 0
-        today = datetime.now().date()
+        today = date.today()
         
         for stock in stocks:
             # Check if already exists
@@ -273,20 +274,3 @@ class WallStreetScraper:
             
             print(f"Waiting {interval_seconds} seconds...")
             time.sleep(interval_seconds)
-
-
-# # Usage example for both scrapers
-# def test_scrapers():
-#     """Test both scrapers"""
-#     print("Testing Zacks scraper...")
-#     zacks = ZacksScraper(headless=True)
-#     zacks_results = zacks.scrape()
-#     print(f"Zacks results: {zacks_results}")
-    
-#     print("\nTesting WallStreet scraper...")
-#     wallstreet = WallStreetScraper(headless=True)
-#     wallstreet_results = wallstreet.scrape()
-#     print(f"WallStreet results: Found {len(wallstreet_results.get('stocks', []))} stocks")
-
-# if __name__ == "__main__":
-#     test_scrapers()

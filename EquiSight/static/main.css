@@ -1,0 +1,185 @@
+.bullbear-panel {
+  background: #FF6B3A;
+  border-radius: 0;
+  width: 100vw;
+  height: 35vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 2s ease;
+  padding-top: 1rem;
+}
+
+.bullbear-panel.show {
+  opacity: 1;
+}
+
+/* Main description title */
+.panel-title {
+  color: white;
+  font-size: 3.5rem;       /* 3x bigger */
+  font-weight: 800;
+  margin-bottom: none;     /* extra spacing below title */
+  text-align: center;
+}
+
+/* Columns holding BULL and BEAR */
+.bullbear-columns {
+  display: flex;
+  justify-content: center;  /* center columns horizontally */
+  gap: 3rem;               /* bring columns closer together */
+  width: 100%;
+}
+
+.bull-column, .bear-column {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* BULL / BEAR labels */
+.label {
+  color: white;
+  font-size: 2rem;         /* larger than before */
+  font-weight: 600;
+  margin-bottom: none;
+}
+
+/* Tickers */
+.ticker a {
+  background: #FF6B3A;
+  color: white;
+  font-size: 3rem;
+  font-weight: 950;
+  text-decoration: none;
+}
+
+.quote-link a {
+  background: #000000;
+  color: white;
+  text-decoration: none;
+}
+
+.bull, .bear {
+  color: white;
+  font-size: 4rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+body { 
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial; 
+    margin: 0; 
+    background: #0b0c10; 
+    color: #eaf0f6; 
+}
+
+nav { 
+    display: flex; 
+    gap: 12px; 
+    padding: 12px 16px; 
+    background: #11131a; 
+    border-bottom: 1px solid #23283a; 
+}
+
+a, button { 
+    color: #eaf0f6; 
+    text-decoration: none; 
+    background: #1b1f2e; 
+    border: none; 
+    padding: 8px 12px; 
+    border-radius: 8px; 
+}
+
+a:hover, button:hover { 
+    background: #242a3e; 
+}
+
+.container { 
+    max-width: 900px; 
+    margin: 24px auto; 
+    padding: 0 16px; 
+}
+
+.flash { 
+    padding: 10px 12px; 
+    margin-bottom: 8px; 
+    border-radius: 8px; 
+}
+
+.success { 
+    background: #183a2e; 
+    border: 1px solid #2e8b57; 
+}
+
+.error { 
+    background: #3a1b1b; 
+    border: 1px solid #b22222; 
+}
+
+form { 
+    display: grid; 
+    gap: 12px; 
+    max-width: 420px; 
+}
+
+input[type="text"], input[type="password"] { 
+    padding: 10px; 
+    border-radius: 8px; 
+    border: 1px solid #2b3147; 
+    background: #0f1220; 
+    color: #eaf0f6; 
+}
+
+.home-hero {
+  height: 100vh;                   /* full viewport height */
+  background: #FF6B3A;             /* same pinkish-orange */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  padding: 0 16px;
+}
+
+.hero-title {
+  font-size: 6rem;                 /* big title */
+  font-weight: 900;
+  color: white;
+  position: relative;
+  text-transform: uppercase;
+  /* layered effect with black shadow behind white */
+  text-shadow: 2px 2px 0 black, 4px 4px 0 rgba(0,0,0,0.3);
+  margin: 0;
+}
+
+.hero-subtitle {
+  color: white;
+  font-size: 1.5rem;
+  max-width: 800px;
+  margin: 1rem auto 2rem;
+}
+
+.hero-buttons {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.hero-buttons .btn {
+  background: black;
+  color: white;
+  padding: 12px 24px;
+  border-radius: 8px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all 0.3s ease;
+}
+
+.hero-buttons .btn:hover {
+  background: white;
+  color: black;
+  border: 2px solid black;
+}

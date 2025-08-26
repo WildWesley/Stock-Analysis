@@ -4,7 +4,6 @@
     <h1>Stock Wall Street Predictions</h1>
     <p><strong>{{ current_user.username }}</strong>, these are some of the public stock predictions that we've scraped from 
     different public web sources. Drink responsibly.</p>
-    <p>This page is protected with <code>@login_required</code>.</p>
     <table>
         <thead>
             <tr>
@@ -26,7 +25,7 @@
                 <td>{{ row.sector }}</td>
                 <td>{{ row.price }}</td>
                 <td>{{ row.forecast_price }}</td>
-                <td>{{ row.date.strftime("%Y-%m-%d %H:%M") }}</td>
+                <td>{{ row.date.strftime("%Y-%m-%d") }}</td>
             </tr>
             {% endfor %}
         </tbody>

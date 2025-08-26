@@ -1,5 +1,6 @@
 
 # zacks_scraper.py
+# Scrapes zacks.com
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -10,7 +11,7 @@ from bs4 import BeautifulSoup
 import re
 import time
 import random
-from datetime import datetime, timezone
+from datetime import date, timezone
 from EquiSight import db
 from EquiSight.models import Zack_Bull_Bear
 
@@ -102,7 +103,7 @@ class ZacksScraper:
             'bear_link': None,
             'bull_title': None,
             'bear_title': None,
-            'date': datetime.now(timezone.utc).date(),
+            'date': date.today(),
         }
         
         # Try different extraction methods

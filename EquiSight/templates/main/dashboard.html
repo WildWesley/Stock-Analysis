@@ -1,7 +1,25 @@
 {% extends "base.html" %}
 {% block title %}Dashboard · StockSite{% endblock %}
 {% block content %}
-  <h1>Dashboard</h1>
-  <p>Hello, <strong>{{ user.username }}</strong> — you’re logged in.</p>
-  <p>This page is protected with <code>@login_required</code>.</p>
+  <h1>Hello, {{ user.username }} — You’re logged in!</h1>
+
+  <div class="bullbear-panel">
+    <div class="panel-title">Zacks Bull and Bear of the Day</div>
+    <div class="bullbear-columns">
+      <div class="bull-column">
+        <div class="label">BULL</div>
+        <div class="ticker"><a href="{{ bull_bear['bull_link'] }}" target="_blank">
+          {{ bull_bear['bull_ticker'] }}
+        </a></div>
+      </div>
+      <div class="bear-column">
+        <div class="label">BEAR</div>
+        <div class="ticker"><a href="{{ bull_bear['bear_link'] }}" target="_blank">
+          {{ bull_bear['bear_ticker'] }}
+        </a></div>
+      </div>
+    </div>
+  </div>
+  <h2>"In 1978, Zacks' Founder and CEO hit upon a key discovery: earnings estimate revisions are the most powerful force impacting stock prices. With this crucial finding, he developed the Zacks Rank to harness the power of earnings estimates. For more than a quarter century, it has more than doubled the S&P 500 with an average gain of +23.75% per year. These returns cover a period from January 1, 1988 through July 7, 2025."</h2>
+  <h2 class="quote-link"><a href="https://www.zacks.com/stocks/zacks-rank">-https://www.zacks.com/stocks/zacks-rank</a></h2>
 {% endblock %}

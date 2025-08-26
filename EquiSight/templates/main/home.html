@@ -1,6 +1,15 @@
 {% extends "base.html" %}
-{% block title %}Home · StockSite{% endblock %}
+{% block title %}EquiSight{% endblock %}
+
 {% block content %}
-  <h1>Welcome</h1>
-  <p>This is your Flask app. Use the navbar to register or log in.</p>
+<div class="home-hero">
+  <h1 class="hero-title">EquiSight</h1>
+  <p class="hero-subtitle">
+    A one-stop shop for free, public stock predictions to meet all of your investment needs
+  </p>
+  <div class="hero-buttons">
+    <a href="{{ url_for('login') }}" class="btn">Login</a>
+    <a href="{{ url_for('register') }}" class="btn">Register</a>
+  </div>
+</div>
 {% endblock %}

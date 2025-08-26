@@ -1,7 +1,7 @@
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
-from datetime import datetime, timezone
+from datetime import date, timezone, datetime
 
 # NOTE: models.py is meant to define database structures
 
@@ -32,7 +32,7 @@ class Wall_Street_Prediction(db.Model):
     recommendation = db.Column(db.String(10), nullable=True)
     price = db.Column(db.String(10), nullable=True)
     forecast_price = db.Column(db.String(10), nullable=True)
-    date = db.Column(db.DateTime, default=datetime.now(timezone.utc))
+    date = db.Column(db.DateTime, default=date.today())
 
 # Zack Bulls and Bears
 class Zack_Bull_Bear(db.Model):
@@ -41,4 +41,4 @@ class Zack_Bull_Bear(db.Model):
     bear_ticker = db.Column(db.String(10), nullable=False)
     bull_link = db.Column(db.String(100), nullable=False)
     bear_link = db.Column(db.String(100), nullable=False)
-    date = db.Column(db.DateTime, default=datetime.now(timezone.utc))
+    date = db.Column(db.Date, default=date.today)
