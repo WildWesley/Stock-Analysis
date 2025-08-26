@@ -73,6 +73,7 @@ def create_app():
     # Home page
     @app.route("/")
     def home():
+        print("Render home")
         return render_template("main/home.html")
 
     @login_manager.user_loader
